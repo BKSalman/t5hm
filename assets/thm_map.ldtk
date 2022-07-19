@@ -182,7 +182,7 @@
 			"__cHei": 1,
 			"identifier": "Walls",
 			"uid": 1,
-			"relPath": "Player.png",
+			"relPath": "white.png",
 			"embedAtlas": null,
 			"pxWid": 16,
 			"pxHei": 16,
@@ -194,7 +194,7 @@
 			"enumTags": [],
 			"customData": [],
 			"savedSelections": [],
-			"cachedPixelData": { "opaqueTiles": "1", "averageColors": "fc33" }
+			"cachedPixelData": { "opaqueTiles": "1", "averageColors": "ffff" }
 		},
 		{
 			"__cWid": 1,
@@ -302,7 +302,7 @@
 					"__pxTotalOffsetX": 0,
 					"__pxTotalOffsetY": 0,
 					"__tilesetDefUid": 1,
-					"__tilesetRelPath": "Player.png",
+					"__tilesetRelPath": "white.png",
 					"iid": "36c8bf40-02f0-11ed-9f20-79d4429664dc",
 					"levelId": 0,
 					"layerDefUid": 2,

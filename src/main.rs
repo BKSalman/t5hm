@@ -56,6 +56,7 @@ fn main() {
             set_clear_color: SetClearColor::FromLevelBackground,
             ..Default::default()
         })
+        .insert_resource(ClearColor(Color::GRAY))
         .insert_resource(LevelSelection::Uid(0))
         .add_enter_system(GameState::Playing, setup)
         .add_plugin(TileMapPlugin)
@@ -79,6 +80,8 @@ pub struct MyAssets {
     pub player: Handle<Image>,
     #[asset(path = "background.png")]
     pub bg: Handle<Image>,
+    #[asset(path = "white.png")]
+    pub wall: Handle<Image>,
     #[asset(path = "arrow.png")]
     pub arrow: Handle<Image>,
     #[asset(path = "thm_map.ldtk")]

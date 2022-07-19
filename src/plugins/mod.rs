@@ -43,18 +43,18 @@ impl From<EntityInstance> for ColliderBundle {
     }
 }
 
-// impl From<IntGridCell> for ColliderBundle {
-//     fn from(int_grid_cell: IntGridCell) -> ColliderBundle {
-//         let rotation_constraints = LockedAxes::ROTATION_LOCKED;
+impl From<IntGridCell> for ColliderBundle {
+    fn from(int_grid_cell: IntGridCell) -> ColliderBundle {
+        let rotation_constraints = LockedAxes::ROTATION_LOCKED;
 
-//         if int_grid_cell.value == 1 {
-//             ColliderBundle {
-//                 collider: Collider::cuboid(8., 8.),
-//                 rotation_constraints,
-//                 ..Default::default()
-//             }
-//         } else {
-//             ColliderBundle::default()
-//         }
-//     }
-// }
+        if int_grid_cell.value == 1 {
+            ColliderBundle {
+                collider: Collider::cuboid(8., 8.),
+                rotation_constraints,
+                ..Default::default()
+            }
+        } else {
+            ColliderBundle::default()
+        }
+    }
+}
