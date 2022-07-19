@@ -48,7 +48,7 @@ fn main() {
     })
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
     .add_plugin(LdtkPlugin)
-    .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
+    .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(50.0));
     if cfg!(debug_assertions) {
         app.add_plugin(RapierDebugRenderPlugin::default());
     }

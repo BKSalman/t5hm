@@ -1,7 +1,9 @@
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::prelude::*;
+use bevy_rapier2d::{prelude::*};
 use iyes_loopless::prelude::*;
 
 use crate::{GameState, MainCamera, MyAssets};
@@ -54,7 +56,10 @@ pub struct PlayerBundle {
 }
 
 #[derive(Component)]
-struct Bullet;
+pub struct Bullet;
+
+#[derive(Component)]
+pub struct Ray;
 
 #[derive(Component)]
 pub struct Arrow;
@@ -146,17 +151,21 @@ pub fn player_dash(
 }
 
 pub fn player_shoot(
-    player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
+    player_query: Query<(Entity, &Transform), (With<Player>, Without<Enemy>)>,
     windows: Res<Windows>,
     my_assets: Res<MyAssets>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    mut ray_query: Query<(&mut Transform, Entity), (With<Ray>, Without<Player>, Without<Enemy>)>,
+    mut enemy_query: Query<(&mut Enemy, Entity)>,
     mut commands: Commands,
     mouse: Res<Input<MouseButton>>,
+    rapier_context: Res<RapierContext>,
+    time: Res<Time>,
 ) {
     let window = windows.get_primary().unwrap();
     if let Ok((camera, camera_transform)) = q_camera.get_single() {
         if let Some(mouse_position) = window.cursor_position() {
-            for player_transform in player_query.iter() {
+            for (player_e, player_transform) in player_query.iter() {
                 if mouse.just_pressed(MouseButton::Left) {
                     let window_size = Vec2::new(window.width() as f32, window.height() as f32);
                     let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
@@ -173,7 +182,7 @@ pub fn player_shoot(
                             ..Default::default()
                         })
                         .insert(Bullet)
-                        .insert(Transform::from_translation(player_transform.translation))
+                        .insert(Transform::from_translation(player_transform.translation.truncate().extend(1.)))
                         .insert(RigidBody::KinematicVelocityBased)
                         .insert(Collider::ball(6.))
                         .insert(Ccd::enabled())
@@ -182,6 +191,65 @@ pub fn player_shoot(
                             linvel: bullet_direction * 700.,
                             ..Default::default()
                         });
+                }
+                if mouse.pressed(MouseButton::Right) {
+                    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+                    let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
+                    let ndc_to_world =
+                        camera_transform.compute_matrix() * camera.projection_matrix.inverse();
+                    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+                    let world_pos: Vec2 = world_pos.truncate();
+                    let ray_pos = player_transform.translation.truncate();
+                    let target_position = world_pos - ray_pos;
+                    let ray_dir = target_position.normalize();
+                    let max_toi = 100.0;
+                    let solid = true;
+                    let filter = QueryFilter{
+                        exclude_collider: Some(player_e),
+                        ..Default::default()
+                    };
+                    let diff = target_position;
+                    let angle = diff.y.atan2(diff.x) - FRAC_PI_2; // Add/sub FRAC_PI here optionally
+                    if let Ok((mut ray_transform, _ray_e)) = ray_query.get_single_mut() {
+                        ray_transform.translation = player_transform.translation.truncate().extend(1.);
+                        ray_transform.rotation = Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle);
+                    } else {
+                        commands
+                            .spawn_bundle(SpriteBundle {
+                                sprite: Sprite {
+                                    anchor: bevy::sprite::Anchor::BottomCenter,
+                                    ..Default::default()
+                                },
+                                texture: my_assets.arrow.clone(),
+                                ..Default::default()
+                            })
+                            .insert(Ray)
+                            .insert(Transform{
+                                translation: player_transform.translation.truncate().extend(1.),
+                                rotation: Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle),
+                                scale: Vec3::new(0.1, 8.5, 0.),
+                                ..Default::default()
+                            });
+                    }
+                    
+                    if let Some((entity, _toi)) = rapier_context.cast_ray(
+                        ray_pos, ray_dir, max_toi, solid, filter
+                    ) {
+                        for (mut enemy, enemy_e) in enemy_query.iter_mut() {
+                            if enemy_e == entity {
+                                // The first collider hit has the entity `entity` and it hit after
+                                // the ray travelled a distance equal to `ray_dir * toi`.
+                                enemy.hp -= 10. * time.delta_seconds();
+                                // let hit_point = ray_pos + ray_dir * _toi;
+                                // println!("Entity {:?} hit at point {} player {:?}", entity, hit_point, player_e);
+                            }
+                        }
+                    }
+                }
+                if mouse.just_released(MouseButton::Right) {
+                    if let Ok((mut _ray_transform, _ray_e)) = ray_query.get_single_mut() {
+                        commands.entity(_ray_e).despawn_recursive();
+                    }
                 }
             }
         }
