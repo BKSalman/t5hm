@@ -6,12 +6,15 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::ConditionSet;
 
-use crate::{RESOLUTION, GameState};
+use crate::{GameState, RESOLUTION};
 
 use super::player::Player;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
 pub struct Wall;
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Component)]
+pub struct WallCollision;
 
 #[derive(Clone, Debug, Default, Bundle, LdtkIntCell)]
 pub struct WallBundle {
@@ -22,13 +25,12 @@ pub struct TileMapPlugin;
 
 impl Plugin for TileMapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(spawn_wall_collision)
-            .add_system_set(
-                ConditionSet::new()
+        app.add_system(spawn_wall_collision).add_system_set(
+            ConditionSet::new()
                 .run_in_state(GameState::Playing)
                 .with_system(camera_fit_inside_current_level)
-                .into()
-            );
+                .into(),
+        );
     }
 }
 
@@ -235,6 +237,7 @@ fn spawn_wall_collision(
                             ))
                             .insert(GlobalTransform::default())
                             .insert(Name::new("Wall Collision"))
+                            .insert(WallCollision)
                             .insert(GravityScale(0.))
                             // Making the collider a child of the level serves two purposes:
                             // 1. Adjusts the transforms to be relative to the level for free

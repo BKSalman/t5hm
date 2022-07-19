@@ -4,9 +4,9 @@ use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 
-use crate::{MainCamera, MyAssets, GameState};
+use crate::{GameState, MainCamera, MyAssets};
 
-use super::{enemy::Enemy, ColliderBundle};
+use super::{enemy::Enemy, tilemap::WallCollision, ColliderBundle};
 
 #[derive(Default, Debug, Inspectable)]
 pub enum Direction {
@@ -63,15 +63,15 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app
-        .add_system_set(ConditionSet::new()
-            .run_in_state(GameState::Playing)
-            .with_system(player_movement)
-            .with_system(player_dash)
-            .with_system(player_arrow)
-            .with_system(player_shoot)
-            .with_system(hit)
-            .into()
+        app.add_system_set(
+            ConditionSet::new()
+                .run_in_state(GameState::Playing)
+                .with_system(player_movement)
+                .with_system(player_dash)
+                .with_system(player_arrow)
+                .with_system(player_shoot)
+                .with_system(hit)
+                .into(),
         );
     }
 }
@@ -146,7 +146,7 @@ pub fn player_dash(
 }
 
 pub fn player_shoot(
-    player_query: Query<(&Player, &Transform, Entity)>,
+    player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
     windows: Res<Windows>,
     my_assets: Res<MyAssets>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -156,8 +156,52 @@ pub fn player_shoot(
     let window = windows.get_primary().unwrap();
     if let Ok((camera, camera_transform)) = q_camera.get_single() {
         if let Some(mouse_position) = window.cursor_position() {
-            for (_player, player_transform, player_entity) in player_query.iter() {
-                    if mouse.just_pressed(MouseButton::Left) {
+            for player_transform in player_query.iter() {
+                if mouse.just_pressed(MouseButton::Left) {
+                    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+                    let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
+                    let ndc_to_world =
+                        camera_transform.compute_matrix() * camera.projection_matrix.inverse();
+                    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+                    let world_pos: Vec2 = world_pos.truncate();
+                    let player_pos = player_transform.translation.truncate();
+                    let target_position = world_pos - player_pos;
+                    let bullet_direction = target_position.normalize();
+                    commands
+                        .spawn_bundle(SpriteBundle {
+                            texture: my_assets.arrow.clone(),
+                            ..Default::default()
+                        })
+                        .insert(Bullet)
+                        .insert(Transform::from_translation(player_transform.translation))
+                        .insert(RigidBody::KinematicVelocityBased)
+                        .insert(Collider::ball(6.))
+                        .insert(Ccd::enabled())
+                        .insert(Sensor)
+                        .insert(Velocity {
+                            linvel: bullet_direction * 700.,
+                            ..Default::default()
+                        });
+                }
+            }
+        }
+    }
+}
+
+fn player_arrow(
+    player_query: Query<(&Transform, Entity), (With<Player>, Without<Enemy>)>,
+    mut commands: Commands,
+    my_assets: Res<MyAssets>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
+    windows: Res<Windows>,
+    mut arrow_query: Query<&mut Transform, (With<Arrow>, Without<Player>)>,
+) {
+    let window = windows.get_primary().unwrap();
+    match arrow_query.get_single_mut() {
+        Ok(mut arrow_transform) => {
+            for (player_transform, _player_entity) in player_query.iter() {
+                if let Some(mouse_position) = window.cursor_position() {
+                    if let Ok((camera, camera_transform)) = q_camera.get_single() {
                         let window_size = Vec2::new(window.width() as f32, window.height() as f32);
                         let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
                         let ndc_to_world =
@@ -166,91 +210,49 @@ pub fn player_shoot(
                         let world_pos: Vec2 = world_pos.truncate();
                         let player_pos = player_transform.translation.truncate();
                         let target_position = world_pos - player_pos;
-                        let bullet_direction = target_position.normalize();
-                        let bullet = commands
-                            .spawn_bundle(SpriteBundle {
-                                texture: my_assets.arrow.clone(),
-                                ..Default::default()
-                            })
-                            .insert(Bullet)
-                            .insert(RigidBody::KinematicVelocityBased)
-                            .insert(Collider::ball(6.))
-                            .insert(Ccd::enabled())
-                            .insert(Sensor)
-                            .insert(Velocity {
-                                linvel: bullet_direction * 700.,
-                                ..Default::default()
-                            })
-                            .id();
-
-                        commands.entity(player_entity).add_child(bullet);
+                        let arrow_direction = target_position.normalize().extend(55.) * 11.;
+                        arrow_transform.translation = arrow_direction;
                     }
                 }
             }
-        } else {
-            // cursor is not inside the window
         }
-}
-
-fn player_arrow(
-    player_query: Query<(&Player, &Transform, Entity)>,
-    mut commands: Commands,
-    my_assets: Res<MyAssets>,
-    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    windows: Res<Windows>,
-    mut arrow_query: Query<(&Arrow, &mut Transform), Without<Player>>,
-) {
-        let window = windows.get_primary().unwrap();
-        match arrow_query.get_single_mut() {
-            Ok((_arrow, mut arrow_transform)) => {
-                for (_player, player_transform, _player_entity) in player_query.iter() {
-                    if let Some(mouse_position) = window.cursor_position() {
-                        if let Ok((camera, camera_transform)) = q_camera.get_single() {
-                            let window_size =
-                                Vec2::new(window.width() as f32, window.height() as f32);
-                            let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
-                            let ndc_to_world = camera_transform.compute_matrix()
-                                * camera.projection_matrix.inverse();
-                            let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-                            let world_pos: Vec2 = world_pos.truncate();
-                            let player_pos = player_transform.translation.truncate();
-                            let target_position = world_pos - player_pos;
-                            let arrow_direction = target_position.normalize().extend(55.) * 11.;
-                            arrow_transform.translation = arrow_direction;
-                        }
-                    }
-                }
-            }
-            _ => {
-                for (_player, _player_transform, player_entity) in player_query.iter() {
-                    let arrow = commands
-                        .spawn_bundle(SpriteBundle {
-                            sprite: Sprite {
-                                custom_size: Some(Vec2::splat(3.)),
-                                ..Default::default()
-                            },
-                            texture: my_assets.arrow.clone(),
+        _ => {
+            for (_player_transform, player_entity) in player_query.iter() {
+                let arrow = commands
+                    .spawn_bundle(SpriteBundle {
+                        sprite: Sprite {
+                            custom_size: Some(Vec2::splat(3.)),
                             ..Default::default()
-                        })
-                        .insert(Arrow)
-                        .id();
-                    commands.entity(player_entity).add_child(arrow);
-                }
+                        },
+                        texture: my_assets.arrow.clone(),
+                        ..Default::default()
+                    })
+                    .insert(Arrow)
+                    .id();
+                commands.entity(player_entity).add_child(arrow);
             }
         }
+    }
 }
 
 fn hit(
     mut commands: Commands,
     mut enemy_query: Query<(&mut Enemy, Entity)>,
+    wall_collision_query: Query<Entity, With<WallCollision>>,
     bullet_query: Query<Entity, With<Bullet>>,
     rapier_context: Res<RapierContext>,
 ) {
-    for (mut enemy, enemy_e) in enemy_query.iter_mut() {
-        for bullet_e in bullet_query.iter() {
-            if rapier_context.intersection_pair(enemy_e, bullet_e) == Some(true) {
-                enemy.hp -= 5.;
-                commands.entity(bullet_e).despawn();
+    for bullet_e in bullet_query.iter() {
+        for (collider1, collider2, _intersecting) in rapier_context.intersections_with(bullet_e) {
+            for (mut enemy, enemy_e) in enemy_query.iter_mut() {
+                if collider1 == enemy_e || collider2 == enemy_e {
+                    enemy.hp -= 5.;
+                    commands.entity(bullet_e).despawn_recursive();
+                }
+            }
+            if wall_collision_query.contains(collider1) || wall_collision_query.contains(collider2)
+            {
+                commands.entity(bullet_e).despawn_recursive();
             }
         }
     }

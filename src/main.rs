@@ -5,10 +5,10 @@ use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 use iyes_progress::prelude::*;
 use plugins::{
+    debug::DebugPlugin,
     enemy::{EnemyBundle, EnemyPlugin},
     player::{PlayerBundle, PlayerPlugin},
     tilemap::{TileMapPlugin, WallBundle},
-    debug::DebugPlugin,
 };
 
 mod plugins;
@@ -44,29 +44,27 @@ fn main() {
     .add_plugins(DefaultPlugins)
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
     .add_plugin(LdtkPlugin)
-    .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-    .add_plugin(DebugPlugin)
-    .insert_resource(LdtkSettings {
-        level_spawn_behavior: LevelSpawnBehavior::UseWorldTranslation {
-            load_level_neighbors: true,
-        },
-        set_clear_color: SetClearColor::FromLevelBackground,
-        ..Default::default()
-    })
-    .insert_resource(LevelSelection::Uid(0))
-    .add_enter_system(GameState::Playing, setup)
-    .add_plugin(TileMapPlugin)
-    .add_plugin(PlayerPlugin)
-    .add_plugin(EnemyPlugin)
-    .register_ldtk_int_cell::<WallBundle>(1)
-    .register_ldtk_entity::<PlayerBundle>("Player")
-    .register_ldtk_entity::<EnemyBundle>("Enemy");
+    .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
     if cfg!(debug_assertions) {
-        app
-        .add_plugin(RapierDebugRenderPlugin::default());
+        app.add_plugin(RapierDebugRenderPlugin::default());
     }
-    app
-    .run();
+    app.add_plugin(DebugPlugin)
+        .insert_resource(LdtkSettings {
+            level_spawn_behavior: LevelSpawnBehavior::UseWorldTranslation {
+                load_level_neighbors: true,
+            },
+            set_clear_color: SetClearColor::FromLevelBackground,
+            ..Default::default()
+        })
+        .insert_resource(LevelSelection::Uid(0))
+        .add_enter_system(GameState::Playing, setup)
+        .add_plugin(TileMapPlugin)
+        .add_plugin(PlayerPlugin)
+        .add_plugin(EnemyPlugin)
+        .register_ldtk_int_cell::<WallBundle>(1)
+        .register_ldtk_entity::<PlayerBundle>("Player")
+        .register_ldtk_entity::<EnemyBundle>("Enemy")
+        .run();
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]

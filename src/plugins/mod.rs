@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 
+pub mod debug;
 pub mod enemy;
 pub mod player;
 pub mod tilemap;
-pub mod debug;
 
 #[derive(Clone, Default, Bundle, LdtkIntCell)]
 pub struct ColliderBundle {
@@ -43,18 +43,18 @@ impl From<EntityInstance> for ColliderBundle {
     }
 }
 
-impl From<IntGridCell> for ColliderBundle {
-    fn from(int_grid_cell: IntGridCell) -> ColliderBundle {
-        let rotation_constraints = LockedAxes::ROTATION_LOCKED;
+// impl From<IntGridCell> for ColliderBundle {
+//     fn from(int_grid_cell: IntGridCell) -> ColliderBundle {
+//         let rotation_constraints = LockedAxes::ROTATION_LOCKED;
 
-        if int_grid_cell.value == 2 {
-            ColliderBundle {
-                collider: Collider::cuboid(8., 8.),
-                rotation_constraints,
-                ..Default::default()
-            }
-        } else {
-            ColliderBundle::default()
-        }
-    }
-}
+//         if int_grid_cell.value == 1 {
+//             ColliderBundle {
+//                 collider: Collider::cuboid(8., 8.),
+//                 rotation_constraints,
+//                 ..Default::default()
+//             }
+//         } else {
+//             ColliderBundle::default()
+//         }
+//     }
+// }
