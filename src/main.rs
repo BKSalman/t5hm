@@ -4,6 +4,8 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 use iyes_progress::prelude::*;
+use bevy_embedded_assets::EmbeddedAssetPlugin;
+
 use plugins::{
     debug::DebugPlugin,
     enemy::{EnemyBundle, EnemyPlugin},
@@ -41,7 +43,9 @@ fn main() {
         resizable: false,
         ..Default::default()
     })
-    .add_plugins(DefaultPlugins)
+    .add_plugins_with(DefaultPlugins, |group| {
+        group.add_before::<bevy::asset::AssetPlugin, _>(EmbeddedAssetPlugin)
+    })
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
     .add_plugin(LdtkPlugin)
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0));
