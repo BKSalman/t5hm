@@ -45,7 +45,6 @@ fn main() {
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
     .add_plugin(LdtkPlugin)
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(100.0))
-    .add_plugin(RapierDebugRenderPlugin::default())
     .add_plugin(DebugPlugin)
     .insert_resource(LdtkSettings {
         level_spawn_behavior: LevelSpawnBehavior::UseWorldTranslation {
@@ -61,7 +60,12 @@ fn main() {
     .add_plugin(EnemyPlugin)
     .register_ldtk_int_cell::<WallBundle>(1)
     .register_ldtk_entity::<PlayerBundle>("Player")
-    .register_ldtk_entity::<EnemyBundle>("Enemy")
+    .register_ldtk_entity::<EnemyBundle>("Enemy");
+    if cfg!(debug_assertions) {
+        app
+        .add_plugin(RapierDebugRenderPlugin::default());
+    }
+    app
     .run();
 }
 

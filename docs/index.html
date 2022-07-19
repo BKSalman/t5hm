@@ -1,0 +1,53 @@
+    <style>
+      #bevy-canvas {
+        height: 100%;
+        width: 100%;
+      }
+      .container {
+        height: 90vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      .container > * {
+        width: 100%;
+        height: 100%;
+      }
+        div {
+            font-size: 1rem;
+        }
+        body {
+            background-color: black;
+            color: white;
+        }
+      canvas {
+        background-color: white;
+      }
+      a {
+        top: 0;
+        left: 50%;
+        /* transform: translateY(-50%); */
+        position: absolute;
+        color: white;
+      }
+    </style>
+  <script type="module">
+    import init from './wasm/t5hm.js'
+    init()
+  </script>
+  <a href="#" onclick="var c = document.getElementById('bevy-canvas'); let x = (c.webkitRequestFullScreen || c.requestFullscreen); x.call(c);">fullscreen</a>
+  <div class="container">
+    <canvas id="bevy-canvas" tabIndex="0" autofocus></canvas>
+  <div>
+    WASD or Arrows to move
+  </div>
+  <div>
+    Left-Click to shoot
+  </div>
+  <div>
+    Left-Shift to dash
+  </div>
+
+  </div>
