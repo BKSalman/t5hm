@@ -1,0 +1,23 @@
+[package]
+name = "t5hm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = {version = "0.7.0"}
+bevy-inspector-egui = "0.11"
+rand = "0.8.5"
+bevy_rapier2d = { version = "0.15.0", features = [ "simd-stable", "debug-render" ] }
+heron = {version = "3.1.0", features = ["2d"]}
+bevy_asset_loader = { version = "0.11.0", features = [
+    "2d",
+    "stageless",
+    "progress_tracking",
+    "progress_tracking_stageless",
+] }
+iyes_loopless = "0.5.1"
+iyes_progress = { version = "0.3.0", features = ["iyes_loopless"] }
+bevy_ecs_ldtk = "0.3.0"
+serde = {version = "1.0.138"}
