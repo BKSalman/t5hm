@@ -5,7 +5,6 @@ use bevy_ecs_ldtk::prelude::*;
 use bevy_inspector_egui::Inspectable;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
-use bevy_prototype_lyon::{prelude::*, entity::ShapeBundle};
 
 use crate::{GameState, MainCamera, MyAssets};
 
@@ -201,47 +200,42 @@ pub fn player_shoot(
                         exclude_collider: Some(player_e),
                         ..Default::default()
                     };
-                    if let Some((entity, _toi)) = rapier_context.cast_ray(
-                        ray_origin, ray_dir, max_toi, solid, filter
-                    ) {
-                    let hit_point = ray_origin + ray_dir * _toi;
                     let target_rotation = look_at(target_position);
-
                     if let Ok((mut ray_transform, _ray_e, mut ray_sprite)) = ray_query.get_single_mut() {
-                        ray_sprite.custom_size = Some(Vec2::new(1., player_transform.translation.truncate().distance(hit_point)));
-                        ray_transform.translation = player_transform.translation.truncate().extend(1.);
-                        ray_transform.rotation = target_rotation;
+                        if let Some((entity, _toi)) = rapier_context.cast_ray(
+                            ray_origin, ray_dir, max_toi, solid, filter
+                        ) {
+                            let hit_point = ray_origin + ray_dir * _toi;
+                            
+                            ray_sprite.custom_size = Some(Vec2::new(1., player_transform.translation.truncate().distance(hit_point)));
+                            ray_transform.translation = player_transform.translation.truncate().extend(1.);
+                            ray_transform.rotation = target_rotation;
+
+                            for (mut enemy, enemy_e) in enemy_query.iter_mut() {
+                                if enemy_e == entity {
+                                    // The first collider hit has the entity `entity` and it hit after
+                                    // the ray travelled a distance equal to `ray_dir * toi`.
+                                    enemy.hp -= 10. * time.delta_seconds();
+                                    // println!("Entity {:?} hit at point {} player {:?}", entity, hit_point, player_e);
+                                }
+                            }
+
+                        } else {
+                            ray_sprite.custom_size = Some(Vec2::new(1., max_toi));
+                            ray_transform.translation = player_transform.translation.truncate().extend(1.);
+                            ray_transform.rotation = target_rotation;
+                        }
                     } else {
                         commands
                             .spawn_bundle(SpriteBundle{
-                                sprite: Sprite { 
-                                    custom_size: Some(Vec2::new(1., player_transform.translation.truncate().distance(hit_point))),
+                                sprite: Sprite {
                                     anchor: Anchor::BottomCenter,
                                     ..Default::default()
                                 },
                                 texture: my_assets.arrow.clone(),
-                                transform: Transform{
-                                    translation: player_transform.translation.truncate().extend(1.),
-                                    rotation: target_rotation,
-                                    ..Default::default()
-                                },
                                 ..Default::default()
                             })
                             .insert(Ray);
-                    }
-                    
-                        for (mut enemy, enemy_e) in enemy_query.iter_mut() {
-                            if enemy_e == entity {
-                                // The first collider hit has the entity `entity` and it hit after
-                                // the ray travelled a distance equal to `ray_dir * toi`.
-                                enemy.hp -= 10. * time.delta_seconds();
-                                // println!("Entity {:?} hit at point {} player {:?}", entity, hit_point, player_e);
-                            }
-                        }
-                    } else {
-                        if let Ok((mut _ray_transform, ray_e, _ray_sprite)) = ray_query.get_single_mut() {
-                            commands.entity(ray_e).despawn_recursive();
-                        }
                     }
                 }
                 if mouse.just_released(MouseButton::Right) {
@@ -340,15 +334,4 @@ fn look_at(
     let diff = target_position;
     let angle = diff.y.atan2(diff.x) - FRAC_PI_2; // Add/sub FRAC_PI here optionally
     Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle)
-}
-
-fn line(
-    origin: Vec2,
-    to: Vec2,
-) -> Path {
-    let mut path_builder = PathBuilder::new();
-    path_builder.move_to(origin);
-    path_builder.line_to(to);
-
-    path_builder.build()
 }
