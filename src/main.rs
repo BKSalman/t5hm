@@ -1,3 +1,4 @@
+// #![windows_subsystem = "windows"]
 use bevy::{prelude::*, window::PresentMode};
 use bevy_asset_loader::*;
 use bevy_ecs_ldtk::prelude::*;
