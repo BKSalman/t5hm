@@ -1,6 +1,7 @@
 use bevy::{prelude::*, window::PresentMode};
 use bevy_asset_loader::*;
 use bevy_ecs_ldtk::prelude::*;
+use bevy_prototype_lyon::prelude::*;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 use iyes_progress::prelude::*;
@@ -48,6 +49,7 @@ fn main() {
     })
     .add_plugin(ProgressPlugin::new(GameState::AssetLoading))
     .add_plugin(LdtkPlugin)
+    .add_plugin(ShapePlugin)
     .add_plugin(RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(50.0));
     if cfg!(debug_assertions) {
         app.add_plugin(RapierDebugRenderPlugin::default());

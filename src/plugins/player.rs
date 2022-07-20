@@ -1,10 +1,11 @@
 use std::f32::consts::FRAC_PI_2;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::Anchor};
 use bevy_ecs_ldtk::prelude::*;
 use bevy_inspector_egui::Inspectable;
-use bevy_rapier2d::{prelude::*};
+use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
+use bevy_prototype_lyon::{prelude::*, entity::ShapeBundle};
 
 use crate::{GameState, MainCamera, MyAssets};
 
@@ -155,7 +156,7 @@ pub fn player_shoot(
     windows: Res<Windows>,
     my_assets: Res<MyAssets>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    mut ray_query: Query<(&mut Transform, Entity), (With<Ray>, Without<Player>, Without<Enemy>)>,
+    mut ray_query: Query<(&mut Transform, Entity, &mut Sprite), (With<Ray>, Without<Player>, Without<Enemy>)>,
     mut enemy_query: Query<(&mut Enemy, Entity)>,
     mut commands: Commands,
     mouse: Res<Input<MouseButton>>,
@@ -167,14 +168,11 @@ pub fn player_shoot(
         if let Some(mouse_position) = window.cursor_position() {
             for (player_e, player_transform) in player_query.iter() {
                 if mouse.just_pressed(MouseButton::Left) {
-                    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
-                    let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
-                    let ndc_to_world =
-                        camera_transform.compute_matrix() * camera.projection_matrix.inverse();
-                    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-                    let world_pos: Vec2 = world_pos.truncate();
+
+                    let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
+
                     let player_pos = player_transform.translation.truncate();
-                    let target_position = world_pos - player_pos;
+                    let target_position = world_pos.truncate() - player_pos;
                     let bullet_direction = target_position.normalize();
                     commands
                         .spawn_bundle(SpriteBundle {
@@ -193,14 +191,9 @@ pub fn player_shoot(
                         });
                 }
                 if mouse.pressed(MouseButton::Right) {
-                    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
-                    let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
-                    let ndc_to_world =
-                        camera_transform.compute_matrix() * camera.projection_matrix.inverse();
-                    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-                    let world_pos: Vec2 = world_pos.truncate();
-                    let ray_pos = player_transform.translation.truncate();
-                    let target_position = world_pos - ray_pos;
+                    let ray_origin = player_transform.translation.truncate();
+                    let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
+                    let target_position = world_pos.truncate() - ray_origin;
                     let ray_dir = target_position.normalize();
                     let max_toi = 100.0;
                     let solid = true;
@@ -208,47 +201,52 @@ pub fn player_shoot(
                         exclude_collider: Some(player_e),
                         ..Default::default()
                     };
-                    let diff = target_position;
-                    let angle = diff.y.atan2(diff.x) - FRAC_PI_2; // Add/sub FRAC_PI here optionally
-                    if let Ok((mut ray_transform, _ray_e)) = ray_query.get_single_mut() {
+                    if let Some((entity, _toi)) = rapier_context.cast_ray(
+                        ray_origin, ray_dir, max_toi, solid, filter
+                    ) {
+                    let hit_point = ray_origin + ray_dir * _toi;
+                    let target_rotation = look_at(target_position);
+
+                    if let Ok((mut ray_transform, _ray_e, mut ray_sprite)) = ray_query.get_single_mut() {
+                        ray_sprite.custom_size = Some(Vec2::new(1., player_transform.translation.truncate().distance(hit_point)));
                         ray_transform.translation = player_transform.translation.truncate().extend(1.);
-                        ray_transform.rotation = Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle);
+                        ray_transform.rotation = target_rotation;
                     } else {
                         commands
-                            .spawn_bundle(SpriteBundle {
-                                sprite: Sprite {
-                                    anchor: bevy::sprite::Anchor::BottomCenter,
+                            .spawn_bundle(SpriteBundle{
+                                sprite: Sprite { 
+                                    custom_size: Some(Vec2::new(1., player_transform.translation.truncate().distance(hit_point))),
+                                    anchor: Anchor::BottomCenter,
                                     ..Default::default()
                                 },
                                 texture: my_assets.arrow.clone(),
+                                transform: Transform{
+                                    translation: player_transform.translation.truncate().extend(1.),
+                                    rotation: target_rotation,
+                                    ..Default::default()
+                                },
                                 ..Default::default()
                             })
-                            .insert(Ray)
-                            .insert(Transform{
-                                translation: player_transform.translation.truncate().extend(1.),
-                                rotation: Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle),
-                                scale: Vec3::new(0.1, 8.5, 0.),
-                                ..Default::default()
-                            });
+                            .insert(Ray);
                     }
                     
-                    if let Some((entity, _toi)) = rapier_context.cast_ray(
-                        ray_pos, ray_dir, max_toi, solid, filter
-                    ) {
                         for (mut enemy, enemy_e) in enemy_query.iter_mut() {
                             if enemy_e == entity {
                                 // The first collider hit has the entity `entity` and it hit after
                                 // the ray travelled a distance equal to `ray_dir * toi`.
                                 enemy.hp -= 10. * time.delta_seconds();
-                                // let hit_point = ray_pos + ray_dir * _toi;
                                 // println!("Entity {:?} hit at point {} player {:?}", entity, hit_point, player_e);
                             }
+                        }
+                    } else {
+                        if let Ok((mut _ray_transform, ray_e, _ray_sprite)) = ray_query.get_single_mut() {
+                            commands.entity(ray_e).despawn_recursive();
                         }
                     }
                 }
                 if mouse.just_released(MouseButton::Right) {
-                    if let Ok((mut _ray_transform, _ray_e)) = ray_query.get_single_mut() {
-                        commands.entity(_ray_e).despawn_recursive();
+                    if let Ok((mut _ray_transform, ray_e, _ray_sprite)) = ray_query.get_single_mut() {
+                        commands.entity(ray_e).despawn_recursive();
                     }
                 }
             }
@@ -270,14 +268,9 @@ fn player_arrow(
             for (player_transform, _player_entity) in player_query.iter() {
                 if let Some(mouse_position) = window.cursor_position() {
                     if let Ok((camera, camera_transform)) = q_camera.get_single() {
-                        let window_size = Vec2::new(window.width() as f32, window.height() as f32);
-                        let ndc = (mouse_position / window_size) * 2.0 - Vec2::ONE;
-                        let ndc_to_world =
-                            camera_transform.compute_matrix() * camera.projection_matrix.inverse();
-                        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-                        let world_pos: Vec2 = world_pos.truncate();
+                        let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
                         let player_pos = player_transform.translation.truncate();
-                        let target_position = world_pos - player_pos;
+                        let target_position = world_pos.truncate() - player_pos;
                         let arrow_direction = target_position.normalize().extend(55.) * 11.;
                         arrow_transform.translation = arrow_direction;
                     }
@@ -295,6 +288,7 @@ fn player_arrow(
                         texture: my_assets.arrow.clone(),
                         ..Default::default()
                     })
+                    .insert(Name::new("Arrow"))
                     .insert(Arrow)
                     .id();
                 commands.entity(player_entity).add_child(arrow);
@@ -324,4 +318,37 @@ fn hit(
             }
         }
     }
+}
+
+fn to_world_coordinates(
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    window: &Window, 
+    target_position: Vec2
+) -> Vec3 {
+    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
+    let ndc = (target_position / window_size) * 2.0 - Vec2::ONE;
+    let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix.inverse();
+    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+    
+    world_pos
+}
+
+fn look_at(
+    target_position: Vec2,
+) -> Quat {
+    let diff = target_position;
+    let angle = diff.y.atan2(diff.x) - FRAC_PI_2; // Add/sub FRAC_PI here optionally
+    Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle)
+}
+
+fn line(
+    origin: Vec2,
+    to: Vec2,
+) -> Path {
+    let mut path_builder = PathBuilder::new();
+    path_builder.move_to(origin);
+    path_builder.line_to(to);
+
+    path_builder.build()
 }

@@ -22,3 +22,4 @@ iyes_progress = { version = "0.3.0", features = ["iyes_loopless"] }
 bevy_ecs_ldtk = "0.3.0"
 serde = {version = "1.0.138"}
 bevy_embedded_assets = "0.3.0"
+bevy_prototype_lyon = "0.5.0"
