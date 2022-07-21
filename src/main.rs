@@ -2,10 +2,10 @@
 use bevy::{prelude::*, window::PresentMode};
 use bevy_asset_loader::*;
 use bevy_ecs_ldtk::prelude::*;
+use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 use iyes_progress::prelude::*;
-use bevy_embedded_assets::EmbeddedAssetPlugin;
 
 use plugins::{
     debug::DebugPlugin,
