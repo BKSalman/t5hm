@@ -165,7 +165,6 @@ impl PlayerPlugin {
         }
     }
     
-    //TODO: fix panic on 
     pub fn player_shoot(
         mut player_query: Query<(&mut Player ,Entity, &Transform), Without<Enemy>>,
         windows: Res<Windows>,
