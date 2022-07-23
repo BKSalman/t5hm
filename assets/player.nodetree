@@ -1,0 +1,31 @@
+[
+NodeID("0x0000000000000001"):MatchNode<PlayerState>(
+	name: "Player_SwitchNode",
+	check: AttributeName("PlayerState"),
+	default: ("0xFADC5C6B7FF01B5F"),
+	pairs: [
+	(LayingF, ("0xD4FFC8686B9FE74F")),
+	(Idle, ("0xFADC5C6B7FF01B5F")),
+	(StandB, ("0x25AC21264ABCB025")),
+	(LayingB, ("0x35FC421AADA3D9B8")),
+	(StandF, ("0x1E527169B5475656")),
+	(FallB, ("0x9F4BD19B423E940A")),
+	(FallF, ("0x6EE62A603E81AD8B")),
+	(Walking, ("0x1700B9C67B93A42F")),
+	(Attacking, ("0x8EA5288868FD8F3A")),
+	(Running, ("0x523587637DC7A79D")),
+	(Test, ("0x3")),
+	],),
+IndexNode(
+	name: "Player_Melee",
+	frames: [
+	slash/aseprite_animation1.png,
+	slash/aseprite_animation2.png,
+	slash/aseprite_animation3.png,
+	slash/aseprite_animation4.png,
+	slash/aseprite_animation5.png,
+	],
+	is_loop: false,
+	index: IndexName("Melee"),
+	),
+]

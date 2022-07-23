@@ -1,4 +1,3 @@
-use std::f32::consts::FRAC_PI_2;
 use std::time::Duration;
 use bevy::{prelude::*, sprite::Anchor};
 use bevy_ecs_ldtk::prelude::*;
@@ -8,7 +7,7 @@ use iyes_loopless::prelude::*;
 
 use crate::{GameState, MainCamera, MyAssets};
 
-use super::{enemy::{Enemy, death}, tilemap::WallCollision, ColliderBundle};
+use super::{enemy::{Enemy, death}, tilemap::WallCollision, ColliderBundle, utils::{to_world_coordinates, look_at}, AnimationTimer};
 
 #[derive(Default, Debug, Inspectable)]
 pub enum Direction {
@@ -24,6 +23,7 @@ pub enum Direction {
 pub enum Weapon {
     Gun,
     Laser,
+    Melee
 }
 
 #[derive(Component, Inspectable)]
@@ -32,7 +32,8 @@ pub struct Player {
     pub velocity: f32,
     pub direction: Direction,
     pub is_moving: bool,
-    pub weapon: Weapon
+    pub weapon: Weapon,
+    pub is_slashing: bool,
 }
 
 impl Default for Player {
@@ -42,7 +43,8 @@ impl Default for Player {
             direction: Direction::Right,
             velocity: 200.,
             is_moving: false,
-            weapon: Weapon::Gun
+            weapon: Weapon::Gun,
+            is_slashing: false,
         }
     }
 }
@@ -70,6 +72,22 @@ pub struct Bullet;
 pub struct Ray;
 
 #[derive(Component)]
+pub struct Melee;
+
+#[derive(Component)]
+pub struct SlashTimer {
+    pub timer: Timer
+}
+
+impl Default for SlashTimer {
+    fn default() -> Self {
+        Self {
+            timer: Timer::new(Duration::from_millis(500), true) // - 100 for the last index
+        }
+    }
+}
+
+#[derive(Component)]
 pub struct Arrow;
 
 #[derive(Component)]
@@ -90,6 +108,9 @@ impl Plugin for PlayerPlugin {
                 .with_system(Self::player_shoot)
                 .with_system(Self::hit)
                 .with_system(Self::flashing)
+                .with_system(Self::switch_weapon)
+                .with_system(Self::animate_slash)
+                .with_system(Self::check_slash)
                 .into(),
         );
     }
@@ -174,7 +195,6 @@ impl PlayerPlugin {
         mut enemy_query: Query<(&mut Enemy, Entity)>,
         mut commands: Commands,
         mouse: Res<Input<MouseButton>>,
-        keyboard: Res<Input<KeyCode>>,
         rapier_context: Res<RapierContext>,
         time: Res<Time>,
     ) {
@@ -182,12 +202,6 @@ impl PlayerPlugin {
         if let Ok((camera, camera_transform)) = q_camera.get_single() {
             if let Some(mouse_position) = window.cursor_position() {
                 if let Ok((mut player, player_e, player_transform)) = player_query.get_single_mut() {
-                    if keyboard.just_pressed(KeyCode::Key1) {
-                        player.weapon = Weapon::Gun
-                    }
-                    if keyboard.just_pressed(KeyCode::Key2) {
-                        player.weapon = Weapon::Laser
-                    }
                     match player.weapon {
                         Weapon::Gun =>{
                                 if mouse.just_pressed(MouseButton::Left) {
@@ -275,7 +289,40 @@ impl PlayerPlugin {
                                     commands.entity(ray_e).despawn_recursive();
                                 }
                             }
-                        }
+                        },
+                        Weapon::Melee =>{
+                            if mouse.just_pressed(MouseButton::Left) {
+
+                                let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
+
+                                let player_pos = player_transform.translation.truncate();
+                                let target_position = world_pos.truncate() - player_pos;
+                                let target_rotation = look_at(target_position);
+                                
+                                if player.is_slashing == false {
+                                    player.is_slashing = true;
+                                    let melee_attack = commands.spawn_bundle(SpriteSheetBundle{
+                                        texture_atlas: my_assets.slash.clone(),
+                                        transform: Transform{
+
+                                            translation: target_position.extend(55.).clamp(
+                                                Vec3::new(-10., -10., 55.),
+                                                Vec3::new(10., 10., 55.)),
+                                            rotation: target_rotation,
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    })
+                                    .insert(Melee)
+                                    .insert(SlashTimer::default())
+                                    .insert(AnimationTimer::default()).insert(RigidBody::KinematicVelocityBased)
+                                    .insert(Collider::cuboid(6., 6.))
+                                    .insert(Ccd::enabled())
+                                    .insert(Sensor).id();
+                                    commands.entity(player_e).add_child(melee_attack);
+                                }
+                            }
+                        },
                     }
                 }
             }
@@ -330,6 +377,7 @@ impl PlayerPlugin {
         mut enemy_query: Query<(&mut Enemy, Entity)>,
         wall_collision_query: Query<Entity, With<WallCollision>>,
         bullet_query: Query<Entity, With<Bullet>>,
+        melee_query: Query<Entity, With<Melee>>,
         rapier_context: Res<RapierContext>,
     ) {
         for bullet_e in bullet_query.iter() {
@@ -353,6 +401,23 @@ impl PlayerPlugin {
                 }
             }
         }
+        for melee_e in melee_query.iter() {
+            for (collider1, collider2, _intersecting) in rapier_context.intersections_with(melee_e) {
+                for (mut enemy, enemy_e) in enemy_query.iter_mut() {
+                    if collider1 == enemy_e || collider2 == enemy_e {
+                        enemy.hp -= 5.;
+                        if death(&enemy){
+                            commands.entity(enemy_e).despawn();
+                        } else {
+                            commands.entity(enemy_e).insert(FlashingTimer{
+                                timer: Timer::new(Duration::from_millis(50), true),
+                            });
+                        }
+                        // commands.entity(melee_e).despawn_recursive();
+                    }
+                }
+            }
+        }
     }
     
     fn flashing (
@@ -371,26 +436,64 @@ impl PlayerPlugin {
             }
         }
     }
-}
 
-fn to_world_coordinates(
-    camera: &Camera,
-    camera_transform: &GlobalTransform,
-    window: &Window, 
-    target_position: Vec2
-) -> Vec3 {
-    let window_size = Vec2::new(window.width() as f32, window.height() as f32);
-    let ndc = (target_position / window_size) * 2.0 - Vec2::ONE;
-    let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix.inverse();
-    let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-    
-    world_pos
-}
+    fn switch_weapon(
+        mut commands: Commands,
+        keyboard: Res<Input<KeyCode>>,
+        mut player_query: Query<&mut Player, Without<Enemy>>,
+        ray_query: Query<Entity, (With<Ray>, Without<Player>, Without<Enemy>)>,
+    ) {
+        if let Ok(mut player) = player_query.get_single_mut() {
+            if keyboard.just_pressed(KeyCode::Key1) {
+                player.weapon = Weapon::Gun;
+                if let Ok(ray_e) = ray_query.get_single() {
+                    commands.entity(ray_e).despawn_recursive();
+                }
+            }
+            if keyboard.just_pressed(KeyCode::Key2) {
+                player.weapon = Weapon::Laser;
+            }
+            if keyboard.just_pressed(KeyCode::Key3) {
+                player.weapon = Weapon::Melee;
+                if let Ok(ray_e) = ray_query.get_single() {
+                    commands.entity(ray_e).despawn_recursive();
+                }
+            }
+        }
+    }
 
-fn look_at(
-    target_position: Vec2,
-) -> Quat {
-    let diff = target_position;
-    let angle = diff.y.atan2(diff.x) - FRAC_PI_2; // Add/sub FRAC_PI here optionally
-    Quat::from_axis_angle(Vec3::new(0., 0., 1.), angle)
+    fn check_slash(
+        slash_query: Query<&SlashTimer, With<Melee>>,
+        mut player_query: Query<&mut Player, Without<Enemy>>,
+    ) {
+        for mut player in player_query.iter_mut() {
+            if let Ok(slash_timer) = slash_query.get_single() {
+                if slash_timer.timer.finished() {
+                    player.is_slashing = false;
+                }
+            }
+        }
+    }
+
+    fn animate_slash(
+        mut slash_query: Query<(Entity, &mut SlashTimer, &mut AnimationTimer, &mut TextureAtlasSprite), With<Melee>>,
+        time: Res<Time>,
+        mut commands: Commands
+    ) {
+        for (slash_e, mut slash_timer, mut animation_timer, mut texture) in slash_query.iter_mut() {
+            animation_timer.timer.tick(time.delta());
+            slash_timer.timer.tick(time.delta());
+            if animation_timer.timer.finished() {
+                if slash_timer.timer.finished() {
+                    println!("finished animation!");
+                    commands.entity(slash_e).despawn_recursive();
+                } else {
+                    println!("animation not finished! old index {}", texture.index);
+                    texture.index += 1;
+                    println!("animation not finished! new index {}", texture.index);
+                }
+            }
+        }
+    }
+
 }

@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::prelude::*;
 use bevy_ecs_ldtk::prelude::*;
 use bevy_rapier2d::prelude::*;
@@ -6,6 +8,20 @@ pub mod debug;
 pub mod enemy;
 pub mod player;
 pub mod tilemap;
+pub mod utils;
+
+#[derive(Component)]
+pub struct AnimationTimer {
+    pub timer: Timer
+}
+
+impl Default for AnimationTimer {
+    fn default() -> Self {
+        Self {
+            timer: Timer::new(Duration::from_millis(100), true)
+        }
+    }
+}
 
 #[derive(Clone, Default, Bundle, LdtkIntCell)]
 pub struct ColliderBundle {

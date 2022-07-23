@@ -2,10 +2,11 @@
 use bevy::{prelude::*, window::PresentMode};
 use bevy_asset_loader::*;
 use bevy_ecs_ldtk::prelude::*;
-use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_rapier2d::prelude::*;
 use iyes_loopless::prelude::*;
 use iyes_progress::prelude::*;
+use bevy_embedded_assets::EmbeddedAssetPlugin;
+// use bevy_sprite_animation::prelude::*;
 
 use plugins::{
     debug::DebugPlugin,
@@ -81,6 +82,9 @@ enum GameState {
 
 #[derive(AssetCollection)]
 pub struct MyAssets {
+    #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 5, rows = 1, padding_x = 2., padding_y = 2.))]
+    #[asset(path = "slash/aseprite_animation.png")]
+    slash: Handle<TextureAtlas>,
     #[asset(path = "Player.png")]
     pub player: Handle<Image>,
     #[asset(path = "background.png")]

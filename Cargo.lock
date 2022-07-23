@@ -672,8 +672,8 @@ dependencies = [
  "bevy",
  "bitflags",
  "log",
- "nalgebra 0.31.0",
- "rapier2d 0.14.0",
+ "nalgebra",
+ "rapier2d",
 ]
 
 [[package]]
@@ -1470,16 +1470,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
-name = "duplicate"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a2535fcf1437c9de0d91a3921351c474258abdb6440cd03bb5a7cf0547e7214"
-dependencies = [
- "heck",
- "proc-macro-error",
-]
-
-[[package]]
 name = "egui"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1871,67 +1861,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "607c8a29735385251a339424dd462993c0fed8fa09d378f259377df08c126022"
 
 [[package]]
-name = "heck"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2540771e65fc8cb83cd6e8a237f70c319bd5c29f78ed1084ba5d50eeac86f7f9"
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "heron"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf6f7d459a656dc184baa0ae0f8ecb0e8a84800dc91c93c85087c6a0a6c7bc70"
-dependencies = [
- "bevy",
- "cfg_aliases",
- "heron_core",
- "heron_macros",
- "heron_rapier",
-]
-
-[[package]]
-name = "heron_core"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b04c54279b182ac4dff67d12e58d0108fd003da02a37f2058a5693f40b1da446"
-dependencies = [
- "bevy",
- "cfg_aliases",
- "duplicate",
- "smallvec",
-]
-
-[[package]]
-name = "heron_macros"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08fce9d4dbde0443ecc82bd2666985e8b4fe7566ce519a80e895d437805ba93c"
-dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "heron_rapier"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4561e27479bbd9802ec871fb3a15017bdb1607194fe786a1ac83af474677e388"
-dependencies = [
- "bevy",
- "cfg_aliases",
- "crossbeam",
- "fnv",
- "heron_core",
- "rapier2d 0.11.3",
 ]
 
 [[package]]
@@ -2404,22 +2339,6 @@ dependencies = [
 
 [[package]]
 name = "nalgebra"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d506eb7e08d6329505faa8a3a00a5dcc6de9f76e0c77e4b75763ae3c770831ff"
-dependencies = [
- "approx",
- "matrixmultiply",
- "nalgebra-macros",
- "num-complex",
- "num-rational 0.4.1",
- "num-traits",
- "simba 0.6.0",
- "typenum",
-]
-
-[[package]]
-name = "nalgebra"
 version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18a89248335f688e4bd994e6d030fd7e185eb41769b8c435395075425e100ac6"
@@ -2431,7 +2350,7 @@ dependencies = [
  "num-complex",
  "num-rational 0.4.1",
  "num-traits",
- "simba 0.7.1",
+ "simba",
  "typenum",
 ]
 
@@ -2858,26 +2777,6 @@ dependencies = [
 
 [[package]]
 name = "parry2d"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e03714e76fd6708c1fa3fc4f58a66dabd723bb87865548657a037beaf9a8eea"
-dependencies = [
- "approx",
- "arrayvec",
- "bitflags",
- "downcast-rs",
- "either",
- "nalgebra 0.29.0",
- "num-derive",
- "num-traits",
- "rustc-hash",
- "simba 0.6.0",
- "slab",
- "smallvec",
-]
-
-[[package]]
-name = "parry2d"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2841cebc29aaf7c69058b242742853d9b106c5245ed946090a75d941d23a6f5e"
@@ -2887,11 +2786,11 @@ dependencies = [
  "bitflags",
  "downcast-rs",
  "either",
- "nalgebra 0.31.0",
+ "nalgebra",
  "num-derive",
  "num-traits",
  "rustc-hash",
- "simba 0.7.1",
+ "simba",
  "slab",
  "smallvec",
  "spade",
@@ -2981,30 +2880,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-error"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
-dependencies = [
- "proc-macro-error-attr",
- "proc-macro2",
- "quote",
- "syn",
- "version_check",
-]
-
-[[package]]
-name = "proc-macro-error-attr"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
-dependencies = [
- "proc-macro2",
- "quote",
- "version_check",
-]
-
-[[package]]
 name = "proc-macro2"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3066,27 +2941,6 @@ checksum = "63e935c45e09cc6dcf00d2f0b2d630a58f4095320223d47fc68918722f0538b6"
 
 [[package]]
 name = "rapier2d"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9db9774217c8dccc2c24bbd80794079110fca3adbb0ec736e65d9cd9d021872f"
-dependencies = [
- "approx",
- "arrayvec",
- "bit-vec",
- "bitflags",
- "crossbeam",
- "downcast-rs",
- "instant",
- "nalgebra 0.29.0",
- "num-derive",
- "num-traits",
- "parry2d 0.7.1",
- "rustc-hash",
- "simba 0.6.0",
-]
-
-[[package]]
-name = "rapier2d"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84d7e798266018ec9194a6ca931ae6520c0bf5f7dbdbcb5f1d8bb0d9c075ea24"
@@ -3097,12 +2951,12 @@ dependencies = [
  "bitflags",
  "crossbeam",
  "downcast-rs",
- "nalgebra 0.31.0",
+ "nalgebra",
  "num-derive",
  "num-traits",
- "parry2d 0.9.0",
+ "parry2d",
  "rustc-hash",
- "simba 0.7.1",
+ "simba",
  "vec_map",
 ]
 
@@ -3335,19 +3189,6 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 
 [[package]]
 name = "simba"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0b7840f121a46d63066ee7a99fc81dcabbc6105e437cae43528cea199b5a05f"
-dependencies = [
- "approx",
- "num-complex",
- "num-traits",
- "paste",
- "wide",
-]
-
-[[package]]
-name = "simba"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13a2609e876d4f77f6ab7ff5254fc39b4f1927ba8e6db3d18be7c32534d3725e"
@@ -3511,7 +3352,6 @@ dependencies = [
  "bevy_ecs_ldtk",
  "bevy_embedded_assets",
  "bevy_rapier2d",
- "heron",
  "iyes_loopless",
  "iyes_progress",
  "rand",
