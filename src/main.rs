@@ -83,7 +83,7 @@ enum GameState {
 #[derive(AssetCollection)]
 pub struct MyAssets {
     #[asset(texture_atlas(tile_size_x = 16., tile_size_y = 16., columns = 5, rows = 1, padding_x = 2., padding_y = 2.))]
-    #[asset(path = "slash/aseprite_animation.png")]
+    #[asset(path = "aseprite_animation.png")]
     slash: Handle<TextureAtlas>,
     #[asset(path = "Player.png")]
     pub player: Handle<Image>,
