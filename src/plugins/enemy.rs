@@ -19,6 +19,7 @@ pub struct Enemy {
     pub velocity: f32,
     pub direction: Direction,
     pub is_moving: bool,
+    pub slashed: bool,
 }
 
 impl Default for Enemy {
@@ -28,6 +29,7 @@ impl Default for Enemy {
             direction: Direction::None,
             velocity: 200.,
             is_moving: false,
+            slashed: false,
         }
     }
 }

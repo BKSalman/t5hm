@@ -75,6 +75,9 @@ pub struct Ray;
 pub struct Melee;
 
 #[derive(Component)]
+pub struct AlreadySlashed;
+
+#[derive(Component)]
 pub struct SlashTimer {
     pub timer: Timer
 }
@@ -298,6 +301,7 @@ impl PlayerPlugin {
                                 let player_pos = player_transform.translation.truncate();
                                 let target_position = world_pos.truncate() - player_pos;
                                 let target_rotation = look_at(target_position);
+                                let slash_direction = target_position.normalize().extend(55.) * 11.;
                                 
                                 if player.is_slashing == false {
                                     player.is_slashing = true;
@@ -305,9 +309,7 @@ impl PlayerPlugin {
                                         texture_atlas: my_assets.slash.clone(),
                                         transform: Transform{
 
-                                            translation: target_position.extend(55.).clamp(
-                                                Vec3::new(-10., -10., 55.),
-                                                Vec3::new(10., 10., 55.)),
+                                            translation: slash_direction,
                                             rotation: target_rotation,
                                             ..Default::default()
                                         },
@@ -405,15 +407,18 @@ impl PlayerPlugin {
             for (collider1, collider2, _intersecting) in rapier_context.intersections_with(melee_e) {
                 for (mut enemy, enemy_e) in enemy_query.iter_mut() {
                     if collider1 == enemy_e || collider2 == enemy_e {
-                        enemy.hp -= 5.;
-                        if death(&enemy){
-                            commands.entity(enemy_e).despawn();
-                        } else {
-                            commands.entity(enemy_e).insert(FlashingTimer{
-                                timer: Timer::new(Duration::from_millis(50), true),
-                            });
+                        if enemy.slashed == false {
+                            enemy.hp -= 5.;
+                            if death(&enemy){
+                                commands.entity(enemy_e).despawn();
+                            } else {
+                                enemy.slashed = true;
+                                commands.entity(enemy_e)
+                                .insert(FlashingTimer{
+                                    timer: Timer::new(Duration::from_millis(50), true),
+                                });
+                            }
                         }
-                        // commands.entity(melee_e).despawn_recursive();
                     }
                 }
             }
@@ -465,11 +470,15 @@ impl PlayerPlugin {
     fn check_slash(
         slash_query: Query<&SlashTimer, With<Melee>>,
         mut player_query: Query<&mut Player, Without<Enemy>>,
+        mut enemy_query: Query<&mut Enemy>,
     ) {
         for mut player in player_query.iter_mut() {
             if let Ok(slash_timer) = slash_query.get_single() {
                 if slash_timer.timer.finished() {
                     player.is_slashing = false;
+                    for mut enemy in enemy_query.iter_mut() {
+                        enemy.slashed = false;
+                    }
                 }
             }
         }
@@ -485,12 +494,9 @@ impl PlayerPlugin {
             slash_timer.timer.tick(time.delta());
             if animation_timer.timer.finished() {
                 if slash_timer.timer.finished() {
-                    println!("finished animation!");
                     commands.entity(slash_e).despawn_recursive();
                 } else {
-                    println!("animation not finished! old index {}", texture.index);
                     texture.index += 1;
-                    println!("animation not finished! new index {}", texture.index);
                 }
             }
         }
