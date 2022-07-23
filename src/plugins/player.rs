@@ -23,7 +23,6 @@ pub enum Direction {
 pub enum Weapon {
     Gun,
     Laser,
-    Melee
 }
 
 #[derive(Component, Inspectable)]
@@ -293,38 +292,36 @@ impl PlayerPlugin {
                                 }
                             }
                         },
-                        Weapon::Melee =>{
-                            if mouse.just_pressed(MouseButton::Left) {
+                    }
+                    if mouse.just_pressed(MouseButton::Right) {
 
-                                let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
+                        let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
 
-                                let player_pos = player_transform.translation.truncate();
-                                let target_position = world_pos.truncate() - player_pos;
-                                let target_rotation = look_at(target_position);
-                                let slash_direction = target_position.normalize().extend(55.) * 11.;
-                                
-                                if player.is_slashing == false {
-                                    player.is_slashing = true;
-                                    let melee_attack = commands.spawn_bundle(SpriteSheetBundle{
-                                        texture_atlas: my_assets.slash.clone(),
-                                        transform: Transform{
+                        let player_pos = player_transform.translation.truncate();
+                        let target_position = world_pos.truncate() - player_pos;
+                        let target_rotation = look_at(target_position);
+                        let slash_direction = target_position.normalize().extend(55.) * 11.;
+                        
+                        if player.is_slashing == false {
+                            player.is_slashing = true;
+                            let melee_attack = commands.spawn_bundle(SpriteSheetBundle{
+                                texture_atlas: my_assets.slash.clone(),
+                                transform: Transform{
 
-                                            translation: slash_direction,
-                                            rotation: target_rotation,
-                                            ..Default::default()
-                                        },
-                                        ..Default::default()
-                                    })
-                                    .insert(Melee)
-                                    .insert(SlashTimer::default())
-                                    .insert(AnimationTimer::default()).insert(RigidBody::KinematicVelocityBased)
-                                    .insert(Collider::cuboid(6., 6.))
-                                    .insert(Ccd::enabled())
-                                    .insert(Sensor).id();
-                                    commands.entity(player_e).add_child(melee_attack);
-                                }
-                            }
-                        },
+                                    translation: slash_direction,
+                                    rotation: target_rotation,
+                                    ..Default::default()
+                                },
+                                ..Default::default()
+                            })
+                            .insert(Melee)
+                            .insert(SlashTimer::default())
+                            .insert(AnimationTimer::default()).insert(RigidBody::KinematicVelocityBased)
+                            .insert(Collider::cuboid(6., 6.))
+                            .insert(Ccd::enabled())
+                            .insert(Sensor).id();
+                            commands.entity(player_e).add_child(melee_attack);
+                        }
                     }
                 }
             }
@@ -457,12 +454,6 @@ impl PlayerPlugin {
             }
             if keyboard.just_pressed(KeyCode::Key2) {
                 player.weapon = Weapon::Laser;
-            }
-            if keyboard.just_pressed(KeyCode::Key3) {
-                player.weapon = Weapon::Melee;
-                if let Ok(ray_e) = ray_query.get_single() {
-                    commands.entity(ray_e).despawn_recursive();
-                }
             }
         }
     }
