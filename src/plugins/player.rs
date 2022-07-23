@@ -197,6 +197,7 @@ impl PlayerPlugin {
         mut enemy_query: Query<(&mut Enemy, Entity)>,
         mut commands: Commands,
         mouse: Res<Input<MouseButton>>,
+        keyboard: Res<Input<KeyCode>>,
         rapier_context: Res<RapierContext>,
         time: Res<Time>,
     ) {
@@ -293,7 +294,7 @@ impl PlayerPlugin {
                             }
                         },
                     }
-                    if mouse.just_pressed(MouseButton::Right) {
+                    if keyboard.just_pressed(KeyCode::F) {
 
                         let world_pos = to_world_coordinates(camera, camera_transform, window, mouse_position);
 
