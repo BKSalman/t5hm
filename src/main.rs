@@ -38,7 +38,7 @@ fn main() {
         height: HEIGHT,
         width: HEIGHT * RESOLUTION,
         position: Some(Vec2::new(200., 20.)),
-        title: "Letters".into(),
+        title: "T5hm".into(),
         present_mode: PresentMode::Fifo,
         #[cfg(target_arch = "wasm32")]
         canvas: Some("#bevy-canvas".to_string()),
@@ -60,6 +60,8 @@ fn main() {
                 load_level_neighbors: true,
             },
             set_clear_color: SetClearColor::FromLevelBackground,
+            int_grid_rendering: IntGridRendering::Colorful,
+            level_background: LevelBackground::Rendered,
             ..Default::default()
         })
         .insert_resource(ClearColor(Color::GRAY))
